@@ -50,9 +50,9 @@ public class Checker {
                 initializeVariable((VariableAssignment) child, scope);
             } else if (child instanceof Stylerule || child instanceof IfClause || child instanceof ElseClause) {
                 check(child, scope + 1);
-                exitScope(scope + 1);
             }
         }
+        exitScope(scope);
     }
 
     private void initializeVariable(VariableAssignment variableAssignment, int scope) {

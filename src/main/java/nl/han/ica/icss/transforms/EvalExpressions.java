@@ -28,7 +28,7 @@ public class EvalExpressions implements Transform {
 
     public void apply(ASTNode node, int scope) {
         enterScope(scope);
-        ArrayList<ASTNode> trashCan = new ArrayList<>();
+        ArrayList<ASTNode> trashCan = new ArrayList<>(); // Used to store objects that need to be removed from the parent after for loop
         for (ASTNode child : node.getChildren()) {
             if (child instanceof VariableAssignment) {
                 initializeVariable((VariableAssignment) child, scope);
@@ -46,9 +46,9 @@ public class EvalExpressions implements Transform {
         exitScope(scope);
     }
 
-    private void emptyTrashcan(ASTNode node, ArrayList<ASTNode> trashCan) {
+    private void emptyTrashcan(ASTNode parent, ArrayList<ASTNode> trashCan) {
         while (trashCan.size() > 0) {
-            node.removeChild(trashCan.remove(0));
+            parent.removeChild(trashCan.remove(0));
         }
     }
 
