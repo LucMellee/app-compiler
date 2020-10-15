@@ -40,6 +40,7 @@ public class RemoveIf implements Transform {
     private void emptyTrashcan(ASTNode parent, ArrayList<ASTNode> trashCan) {
         while (trashCan.size() > 0) {
             if (parent instanceof Stylerule) {
+                // Casting to style rule to access children, since there is no other way to remove specific children in Stylerule
                 ((Stylerule) parent).body.remove(trashCan.remove(0));
             }
         }
