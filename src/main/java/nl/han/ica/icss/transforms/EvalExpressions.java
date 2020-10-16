@@ -38,17 +38,21 @@ public class EvalExpressions implements Transform {
             } else if (child instanceof IfClause) {
                 evaluateIfClause((IfClause) child, scope);
                 apply(child, scope + 1);
-            } else if (child instanceof Stylerule || child instanceof ElseClause) {
+            } else if (child instanceof Stylerule) {
                 apply(child, scope + 1);
             }
         }
-        emptyTrashcan(node, trashCan);
         exitScope(scope);
+        emptyTrashcan(node, trashCan);
     }
 
     private void emptyTrashcan(ASTNode parent, ArrayList<ASTNode> trashCan) {
         while (trashCan.size() > 0) {
-            parent.removeChild(trashCan.remove(0));
+            if (parent instanceof Stylesheet) {
+                parent.removeChild(trashCan.remove(0));
+            } else if (parent instanceof Stylerule) {
+                ((Stylerule) parent).body.remove(trashCan.remove(0));
+            }
         }
     }
 
@@ -79,8 +83,8 @@ public class EvalExpressions implements Transform {
     }
 
     private Literal getLiteralFromVariable(VariableReference variableReference, int scope) {
-        Literal literal = null;
-        for (int i = 0; i < scope; i++) {
+        Literal literal;
+        for (int i = 0; i <= scope; i++) {
             literal = variableValues.get(i).get(variableReference.name);
             if (literal != null) {
                 return literal;

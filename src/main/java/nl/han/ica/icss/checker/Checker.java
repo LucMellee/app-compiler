@@ -11,6 +11,7 @@ import nl.han.ica.datastructures.HANLinkedList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 
 public class Checker {
@@ -21,10 +22,12 @@ public class Checker {
     private final String IF_STATEMENT = "ifClause";
 
     private IHANLinkedList<HashMap<String, ExpressionType>> variableTypes;
+    private IHANLinkedList<HashMap<String, ASTNode>> variableValues; // Used to keep track of variable values
     private ArrayList<String> allowedProperties;
 
     public void check(AST ast) {
         variableTypes = new HANLinkedList<>();
+        variableValues = new HANLinkedList<>();
         allowedProperties = new ArrayList<>();
         addAllowedProperties();
         ASTNode root = ast.root;
@@ -61,6 +64,7 @@ public class Checker {
 
         VariableReference reference = variableAssignment.name;
         variableTypes.get(scope).put(reference.name, expressionType);
+        variableValues.get(scope).put(reference.name, variableAssignment.expression);
     }
 
     private ExpressionType getLiteralExpressionType(Expression expression) {
@@ -88,6 +92,7 @@ public class Checker {
         }
     }
 
+    // Original expression is used in checkIfPropertyAndExceptionTypeMatch
     private void checkExpression(String property, Expression expression, int scope) {
         ExpressionType expressionType; // Used to check expression type of variable
         if (expression instanceof VariableReference) {
@@ -97,7 +102,7 @@ public class Checker {
         }
 
         if (expression instanceof Literal || expression instanceof VariableReference) {
-            checkIfProperyAndExceptionTypeMatch(property, expression, expressionType);
+            checkIfProperyAndExceptionTypeMatch(property, expression, expressionType, scope);
         } else if (expression instanceof Operation) {
             checkOperation(property, (Operation) expression, scope);
         }
@@ -108,32 +113,71 @@ public class Checker {
         }
     }
 
-    private void checkIfProperyAndExceptionTypeMatch(String property, Expression expression, ExpressionType expressionType) {
-        switch (property) {
-            case COLOR_PROPERTY:
-            case BACKGROUND_COLOR_PROPERTY:
-                if (expressionType != ExpressionType.COLOR) {
-                    // This if will prevent a previously set error from being overwritten
-                    if (expression.getError() == null) {
-                        expression.setError("Expression is not a color value");
+    private Expression originalExpression = null; // Variable is used to keep track of the original expression when looping through variables
+    private void checkIfProperyAndExceptionTypeMatch(String property, Expression expression, ExpressionType expressionType, int scope) {
+        // If the type is undefined there is a variable reference in the variable reference
+        // If there is, check that variable
+        if (expressionType == ExpressionType.UNDEFINED) {
+            checkExpressionTypeOfVariableExpression(property, expression, scope);
+        } else {
+            switch (property) {
+                case COLOR_PROPERTY:
+                case BACKGROUND_COLOR_PROPERTY:
+                    if (expressionType != ExpressionType.COLOR) {
+                        if (originalExpression == null) {
+                            setExpressionError(expression, "Expression is not a color value");
+                        } else {
+                            setExpressionError(originalExpression, "Expression is not a color value");
+                            originalExpression = null; // originalExpression needs to be reset, otherwise it is a one time use
+                        }
                     }
-                }
-                break;
-            case WIDTH_PROPERTY:
-            case HEIGHT_PROPERTY:
-                if (expressionType != ExpressionType.PIXEL && expressionType != ExpressionType.PERCENTAGE) {
-                    // This if will prevent a previously set error from being overwritten
-                    if (expression.getError() == null) {
-                        expression.setError("Expression is neither a pixel value or a percentage");
+                    break;
+                case WIDTH_PROPERTY:
+                case HEIGHT_PROPERTY:
+                    if (expressionType != ExpressionType.PIXEL && expressionType != ExpressionType.PERCENTAGE) {
+                        if (originalExpression == null) {
+                            setExpressionError(expression, "Expression is neither a pixel value or a percentage");
+                        } else {
+                            setExpressionError(originalExpression, "Expression is neither a pixel value or a percentage");
+                            originalExpression = null; // originalExpression needs to be reset, otherwise it is a one time use
+                        }
                     }
-                }
-                break;
+                    break;
+            }
         }
+    }
+
+    private void checkExpressionTypeOfVariableExpression(String property, Expression expression, int scope) {
+        if (expression instanceof VariableReference) {
+            Expression variableValue = getVariableValue((VariableReference) expression, scope);
+            if (originalExpression == null) {
+                originalExpression = expression;
+            }
+            checkExpression(property, variableValue, scope);
+        }
+    }
+
+    private void setExpressionError(Expression expression, String error) {
+        // This IF will prevent a previously set error from being overwritten
+        if (expression.getError() == null) {
+            expression.setError(error);
+        }
+    }
+
+    private Expression getVariableValue(VariableReference variableReference, int scope) {
+        Expression expression = null;
+        for (int i = 0; i <= scope; i++) {
+            expression = (Expression) variableValues.get(i).get(variableReference.name);
+            if (expression != null) {
+                break;
+            }
+        }
+        return expression;
     }
 
     private ExpressionType getVariableExpressionType(int scope, VariableReference variableReference) {
         ExpressionType expressionType = null;
-        for (int i = 0; i < scope; i++) {
+        for (int i = 0; i <= scope; i++) {
             expressionType = variableTypes.get(i).get(variableReference.name);
             if (expressionType != null) {
                 break;
@@ -142,7 +186,7 @@ public class Checker {
 
         // If expression type is null when code is reached it means the variable is not known in the hashmaps.
         if (expressionType == null) {
-            variableReference.setError("Variable is not declared or out of scope.");
+            variableReference.setError("Variable '" + variableReference.name + "' is not declared or out of scope.");
         }
 
         return expressionType;
@@ -173,7 +217,7 @@ public class Checker {
             }
         } else if (operation instanceof AddOperation || operation instanceof SubtractOperation) {
             if (!expressionLiteralsMatch(leftExpression, rightExpression, scope)) {
-                operation.setError("Operation expression do not match. In addition and subtraction expressions need to match.");
+                operation.setError("Operations expressions do not match. In addition and subtraction expressions need to match.");
             }
         }
     }
@@ -200,9 +244,11 @@ public class Checker {
 
     private void enterScope(int scope) {
         variableTypes.insert(scope, new HashMap<>());
+        variableValues.insert(scope, new HashMap<>());
     }
 
     private void exitScope(int scope) {
         variableTypes.delete(scope);
+        variableValues.delete(scope);
     }
 }
