@@ -114,6 +114,7 @@ public class Checker {
     }
 
     private Expression originalExpression = null; // Variable is used to keep track of the original expression when looping through variables
+
     private void checkIfProperyAndExceptionTypeMatch(String property, Expression expression, ExpressionType expressionType, int scope) {
         // If the type is undefined there is a variable reference in the variable reference
         // If there is, check that variable
@@ -203,22 +204,42 @@ public class Checker {
             checkOperation(property, (Operation) rightExpression, scope);
         }
 
-        if (leftExpression instanceof ColorLiteral || rightExpression instanceof ColorLiteral) {
-            operation.setError("Color literal is not allowed in an operation.");
-        }
+        if (!(leftExpression instanceof Operation || rightExpression instanceof Operation)) {
+            leftExpression = getExpressionFromVariable(scope, leftExpression);
+            rightExpression = getExpressionFromVariable(scope, rightExpression);
 
-        if (leftExpression instanceof ColorLiteral || rightExpression instanceof ColorLiteral) {
-            operation.setError("A boolean cannot be used in an operation.");
-        }
+            if (leftExpression instanceof ColorLiteral || rightExpression instanceof ColorLiteral) {
+                operation.setError("Color literal is not allowed in an operation.");
+            }
 
-        if (operation instanceof MultiplyOperation) {
-            if (!(leftExpression instanceof ScalarLiteral) && !(rightExpression instanceof ScalarLiteral)) {
-                operation.setError("At least one of the expressions needs to be a scalar literal.");
+            if (leftExpression instanceof BoolLiteral || rightExpression instanceof BoolLiteral) {
+                operation.setError("A boolean cannot be used in an operation.");
             }
-        } else if (operation instanceof AddOperation || operation instanceof SubtractOperation) {
-            if (!expressionLiteralsMatch(leftExpression, rightExpression, scope)) {
-                operation.setError("Operations expressions do not match. In addition and subtraction expressions need to match.");
+
+            if (operation instanceof MultiplyOperation) {
+                checkMultiplyOperation(operation, leftExpression, rightExpression);
+            } else if (operation instanceof AddOperation || operation instanceof SubtractOperation) {
+                checkAddAndSubtractOperation(operation, scope, leftExpression, rightExpression);
             }
+        }
+    }
+
+    private Expression getExpressionFromVariable(int scope, Expression expression) {
+        while (expression instanceof VariableReference) {
+            expression = getVariableValue((VariableReference) expression, scope);
+        }
+        return expression;
+    }
+
+    private void checkAddAndSubtractOperation(Operation operation, int scope, Expression leftExpression, Expression rightExpression) {
+        if (!expressionLiteralsMatch(leftExpression, rightExpression, scope)) {
+            operation.setError("Operations expressions do not match. In addition and subtraction expressions need to match.");
+        }
+    }
+
+    private void checkMultiplyOperation(Operation operation, Expression leftExpression, Expression rightExpression) {
+        if (!(leftExpression instanceof ScalarLiteral) && !(rightExpression instanceof ScalarLiteral)) {
+            operation.setError("At least one of the expressions needs to be a scalar literal.");
         }
     }
 

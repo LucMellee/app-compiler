@@ -41,7 +41,14 @@ MIN: '-';
 MUL: '*';
 ASSIGNMENT_OPERATOR: ':=';
 
-
+// Uitbreiding
+GREATER_THAN: '>';
+LOWER_THAN: '<';
+EQUALS: '==';
+GREATER_EQUAL_THAN: '>=';
+LOWER_EQUAL_THAN: '<=';
+REVERSE_BOOL: '!';
+NOT_EQUAL: '!=';
 
 
 //--- PARSER: ---
@@ -56,7 +63,7 @@ selector: LOWER_IDENT #tagSelector
           | CLASS_IDENT #classSelector;
 
 // IF ELSE clauses
-ifClause: IF BOX_BRACKET_OPEN expression BOX_BRACKET_CLOSE OPEN_BRACE attribute+ CLOSE_BRACE elseClause?;
+ifClause: IF BOX_BRACKET_OPEN REVERSE_BOOL? (expression | boolOperation) BOX_BRACKET_CLOSE OPEN_BRACE attribute+ CLOSE_BRACE elseClause?;
 elseClause: ELSE OPEN_BRACE attribute+ CLOSE_BRACE;
 
 // Declaration attribute
@@ -73,6 +80,12 @@ literal: PIXELSIZE #pixelLiteal
         | bool #booleanLiteral
         | variableReference #variable;
 bool: TRUE | FALSE;
+boolOperation: expression EQUALS expression #equalsOperation
+ | expression GREATER_THAN expression #greaterThanOperation
+ | expression LOWER_THAN expression #lowerThanOperation
+ | expression GREATER_EQUAL_THAN expression #greaterEqualOperation
+ | expression LOWER_EQUAL_THAN expression #lowerEqualOperation
+ | expression NOT_EQUAL expression #notEqualOperation;
 
 // Variable
 variableAssignment: variableReference ASSIGNMENT_OPERATOR expression SEMICOLON;

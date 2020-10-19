@@ -7,9 +7,7 @@ import nl.han.ica.datastructures.HANStack;
 import nl.han.ica.datastructures.IHANStack;
 import nl.han.ica.icss.ast.*;
 import nl.han.ica.icss.ast.literals.*;
-import nl.han.ica.icss.ast.operations.AddOperation;
-import nl.han.ica.icss.ast.operations.MultiplyOperation;
-import nl.han.ica.icss.ast.operations.SubtractOperation;
+import nl.han.ica.icss.ast.operations.*;
 import nl.han.ica.icss.ast.selectors.ClassSelector;
 import nl.han.ica.icss.ast.selectors.IdSelector;
 import nl.han.ica.icss.ast.selectors.TagSelector;
@@ -133,8 +131,13 @@ public class ASTListener extends ICSSBaseListener {
         }
         Collections.reverse(body);
 
-        ASTNode conditionalExpression = currentContainer.pop();
-        currentContainer.push(createIfClauseNode(elseClause, body, conditionalExpression));
+//        ASTNode conditionalExpression = currentContainer.pop();
+        Condition condition = null;
+        if (ctx.getChild(3).getText().equals("!")) {
+            condition.inverseCondition();
+        }
+        condition.addChild(currentContainer.pop());
+        currentContainer.push(createIfClauseNode(elseClause, body, condition));
     }
 
     private ASTNode createIfClauseNode(ASTNode elseClause, ArrayList<ASTNode> body, ASTNode conditionalExpression) {
@@ -236,4 +239,57 @@ public class ASTListener extends ICSSBaseListener {
         currentContainer.push(variable);
     }
 
+    @Override
+    public void exitEqualsOperation(ICSSParser.EqualsOperationContext ctx) {
+        ASTNode operation = new EqualsOperation();
+        ASTNode rightExpression = currentContainer.pop();
+        operation.addChild(currentContainer.pop());
+        operation.addChild(rightExpression);
+        currentContainer.push(operation);
+    }
+
+    @Override
+    public void exitGreaterThanOperation(ICSSParser.GreaterThanOperationContext ctx) {
+        ASTNode operation = new GreaterThanOperation();
+        ASTNode rightExpression = currentContainer.pop();
+        operation.addChild(currentContainer.pop());
+        operation.addChild(rightExpression);
+        currentContainer.push(operation);
+    }
+
+    @Override
+    public void exitLowerThanOperation(ICSSParser.LowerThanOperationContext ctx) {
+        ASTNode operation = new LowerThanOperation();
+        ASTNode rightExpression = currentContainer.pop();
+        operation.addChild(currentContainer.pop());
+        operation.addChild(rightExpression);
+        currentContainer.push(operation);
+    }
+
+    @Override
+    public void exitGreaterEqualOperation(ICSSParser.GreaterEqualOperationContext ctx) {
+        ASTNode operation = new GreaterEqualOperation();
+        ASTNode rightExpression = currentContainer.pop();
+        operation.addChild(currentContainer.pop());
+        operation.addChild(rightExpression);
+        currentContainer.push(operation);
+    }
+
+    @Override
+    public void exitLowerEqualOperation(ICSSParser.LowerEqualOperationContext ctx) {
+        ASTNode operation = new LowerEqualOperation();
+        ASTNode rightExpression = currentContainer.pop();
+        operation.addChild(currentContainer.pop());
+        operation.addChild(rightExpression);
+        currentContainer.push(operation);
+    }
+
+    @Override
+    public void exitNotEqualOperation(ICSSParser.NotEqualOperationContext ctx) {
+        ASTNode operation = new NotOperation();
+        ASTNode rightExpression = currentContainer.pop();
+        operation.addChild(currentContainer.pop());
+        operation.addChild(rightExpression);
+        currentContainer.push(operation);
+    }
 }
